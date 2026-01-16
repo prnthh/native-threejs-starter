@@ -5,5 +5,8 @@
     "@types/three": "npm:@types/three@^0.182.0",
     "react": "npm:react@^19.2.3",
     "three": "npm:three@^0.182.0"
+  },
+  "tasks": {
+    "build":"deno bundle --minify -o r3f.js r3f.tsx && deno compile -A --unstable-webgpu --include ./SDL2.dll ./r3f.js"
   }
 }
