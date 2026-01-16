@@ -93,6 +93,7 @@ const sdl2 = Deno.dlopen("SDL2", {
   SDL_GetWindowWMInfo: { parameters: ["pointer", "pointer"], result: "i32" },
   SDL_GetVersion: { parameters: ["pointer"], result: "void" },
   SDL_PollEvent: { parameters: ["pointer"], result: "i32" },
+  SDL_Metal_CreateView: { parameters: ["pointer"], result: "pointer" },
 });
 
 const enc = new TextEncoder();
@@ -121,11 +122,13 @@ function createWindow(title: string, width: number, height: number) {
     SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE,
   );
   if (raw === null) throw new Error("SDL_CreateWindow failed");
-  return raw;
+  const metalView = BUILD_OS === "darwin" ? sdl2.symbols.SDL_Metal_CreateView(raw) : null;
+  return { window: raw, metalView };
 }
 
 function createSurface(
   window: Deno.PointerValue,
+  metalView: Deno.PointerValue | null,
   width: number,
   height: number,
 ): Deno.UnsafeWindowSurface {
@@ -136,13 +139,13 @@ function createSurface(
 
   const view = new Deno.UnsafePointerView(wm_info!);
   const subsystem = view.getUint32(4);
-  
+
   if (BUILD_OS === "darwin") {
     const nsView = view.getPointer(4 + 4)!;
     return new Deno.UnsafeWindowSurface({
       system: "cocoa",
       windowHandle: nsView,
-      displayHandle: null,
+      displayHandle: metalView,
       width,
       height,
     });
@@ -200,8 +203,8 @@ if (!adapter) throw new Error("No WebGPU adapter found");
 const device = await adapter.requestDevice();
 const preferredFormat = navigator.gpu.getPreferredCanvasFormat();
 
-const window = createWindow("Deno + R3F + WebGPU", WIDTH, HEIGHT);
-const surface = createSurface(window, WIDTH, HEIGHT);
+const { window, metalView } = createWindow("Deno + R3F + WebGPU", WIDTH, HEIGHT);
+const surface = createSurface(window, metalView, WIDTH, HEIGHT);
 surface.resize(WIDTH, HEIGHT);
 
 const context = surface.getContext("webgpu");

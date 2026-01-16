@@ -36,6 +36,7 @@ const sdl2 = Deno.dlopen("SDL2", {
   SDL_GetWindowWMInfo: { parameters: ["pointer", "pointer"], result: "i32" },
   SDL_GetVersion: { parameters: ["pointer"], result: "void" },
   SDL_PollEvent: { parameters: ["pointer"], result: "i32" },
+  SDL_Metal_CreateView: { parameters: ["pointer"], result: "pointer" },
 });
 //#endregion
 
@@ -71,11 +72,14 @@ function createWindow(title: string, width: number, height: number) {
     throw new Error("SDL_CreateWindow failed");
   }
   console.log("SDL window created", raw);
-  return raw;
+  const metalView = BUILD_OS === "darwin" ? sdl2.symbols.SDL_Metal_CreateView(raw) : null;
+  console.log("Metal view created", metalView);
+  return { window: raw, metalView };
 }
 
 function createSurface(
   window: Deno.PointerValue,
+  metalView: Deno.PointerValue | null,
   width: number,
   height: number,
 ): Deno.UnsafeWindowSurface {
@@ -100,7 +104,7 @@ function createSurface(
     return new Deno.UnsafeWindowSurface({
       system: "cocoa",
       windowHandle: nsView,
-      displayHandle: null,
+      displayHandle: metalView,
       width,
       height,
     });
@@ -202,15 +206,7 @@ if (initResult !== 0) {
 console.log("SDL2 initialized");
 
 console.log("Requesting WebGPU adapter");
-const adapter = await Promise.race([
-  navigator.gpu.requestAdapter(),
-  new Promise<GPUAdapter | null>((resolve) => {
-    setTimeout(() => {
-      console.log("requestAdapter still pending after 5000ms");
-      resolve(null);
-    }, 5000);
-  }),
-]);
+const adapter = await navigator.gpu.requestAdapter();
 if (!adapter) {
   throw new Error("No appropriate GPUAdapter found");
 }
@@ -219,9 +215,9 @@ console.log("Requesting WebGPU device");
 const device = await adapter.requestDevice();
 console.log("WebGPU device ready");
 
-const window = createWindow("Deno + SDL2 + WebGPU", WIDTH, HEIGHT);
+const { window, metalView } = createWindow("Deno + SDL2 + WebGPU", WIDTH, HEIGHT);
 console.log("Window handle", window);
-const surface = createSurface(window, WIDTH, HEIGHT);
+const surface = createSurface(window, metalView, WIDTH, HEIGHT);
 console.log("UnsafeWindowSurface created");
 const { canvas, context: canvasContext } = makeCanvas(surface, WIDTH, HEIGHT);
 console.log("Canvas shim created");
