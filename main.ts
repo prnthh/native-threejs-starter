@@ -306,4 +306,6 @@ while (running) {
 sdl2.symbols.SDL_DestroyWindow(window);
 sdl2.symbols.SDL_Quit();
 console.log("Shutdown complete");
+sdl2.close();
+Deno.exit(0);
 //#endregion
