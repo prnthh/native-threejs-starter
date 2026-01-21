@@ -67,3 +67,9 @@ Example:
 ```zsh
 APP_NAME="NativeThree" BUNDLE_ID="com.prnth.native" VERSION="0.1.0" deno task build:mac
 ```
+
+Note: `deno compile` embeds the Deno runtime, so binaries can be large; example sizes (Jan 21, 2026):
+
+- `dist/NativeThree.app`: 121M
+- `dist/SDL2.dll`: 1.5M
+- `dist/r3f`: 73M
