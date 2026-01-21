@@ -14,6 +14,25 @@ const WIDTH = 800;
 const HEIGHT = 600;
 const BUILD_OS = Deno.build.os;
 
+function resolveSdl2Library(): string {
+  if (BUILD_OS !== "darwin") return "SDL2";
+  const candidates = [
+    "/opt/homebrew/opt/sdl2/lib/libSDL2.dylib",
+    "/opt/homebrew/lib/libSDL2.dylib",
+    "/usr/local/opt/sdl2/lib/libSDL2.dylib",
+    "/usr/local/lib/libSDL2.dylib",
+    "SDL2",
+  ];
+  for (const candidate of candidates) {
+    try {
+      Deno.statSync(candidate);
+      return candidate;
+    } catch {
+    }
+  }
+  return "SDL2";
+}
+
 //#region Polyfills
 // deno-lint-ignore no-explicit-any
 const globalAny = globalThis as any;
@@ -82,7 +101,7 @@ if (!globalAny.CustomEvent) {
 
 //#region SDL2 FFI
 console.log("Loading SDL2 library");
-const sdl2 = Deno.dlopen("SDL2", {
+const sdl2 = Deno.dlopen(resolveSdl2Library(), {
   SDL_Init: { parameters: ["u32"], result: "i32" },
   SDL_Quit: { parameters: [], result: "void" },
   SDL_CreateWindow: {
