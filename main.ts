@@ -1,3 +1,4 @@
+import { dirname, join } from "@std/path";
 import * as THREE from "three/webgpu";
 
 const WIDTH = 800;
@@ -23,9 +24,22 @@ if (!globalAny.cancelAnimationFrame) {
 
 const BUILD_OS = Deno.build.os;
 
+function getBundledSdl2Candidates(): string[] {
+  try {
+    const execDir = dirname(Deno.execPath());
+    return [
+      join(execDir, "libSDL2.dylib"),
+      join(execDir, "..", "Frameworks", "libSDL2.dylib"),
+    ];
+  } catch {
+    return [];
+  }
+}
+
 function resolveSdl2Library(): string {
   if (BUILD_OS !== "darwin") return "SDL2";
   const candidates = [
+    ...getBundledSdl2Candidates(),
     "/opt/homebrew/opt/sdl2/lib/libSDL2.dylib",
     "/opt/homebrew/lib/libSDL2.dylib",
     "/usr/local/opt/sdl2/lib/libSDL2.dylib",
